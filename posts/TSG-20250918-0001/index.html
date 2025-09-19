@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TSG-20250918-0001 — サンプル投稿 | つなぎめ</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="canonical" href="https://www.tsunagime.jp/posts/TSG-20250918-0001/">
+  <meta name="description" content="サンプル投稿ページ（H案+）。公開時スナップショット固定・通報導線のダミー実装を含みます。">
+  <meta name="robots" content="index,follow">
+</head>
+<body>
+<header role="banner">
+  <div class="container">
+    <a href="/" aria-label="トップへ"><strong>一般社団法人つなぎめ</strong></a>
+    <span class="badge">H案+ 試験サイト</span>
+  </div>
+</header>
+
+<main id="main" class="container" role="main">
+  <article aria-labelledby="post-title">
+    <header>
+      <h1 id="post-title">TSG-20250918-0001 — サンプル投稿</h1>
+      <p class="meta">公開日: <time datetime="2025-09-18">2025/09/18</time> ・ 作品ID: TSG-20250918-0001</p>
+    </header>
+
+    <figure>
+      <img src="https://picsum.photos/seed/tsunagime/960/540" alt="作品イメージのサンプル画像">
+      <figcaption class="meta">画像はダミー（本番は img サブドメインから配信）</figcaption>
+    </figure>
+
+    <section>
+      <h2>本文（Markdown想定）</h2>
+      <p>これは <strong>H案+</strong> の要件に基づく <em>サンプル投稿ページ</em> です。公開時点のスナップショットで固定されます。</p>
+      <ul>
+        <li>作品ページに賛助ボタンは表示しません。</li>
+        <li>アクセシビリティ（代替テキスト必須、ラベル、コントラスト）に配慮します。</li>
+        <li>通報ボタンから <code>/abuse/report</code> に送信する導線を設置します（このページではダミー）。</li>
+      </ul>
+    </section>
+
+    <hr>
+
+    <section aria-labelledby="abuse-title">
+      <h2 id="abuse-title">通報</h2>
+      <p class="meta">不適切な内容を見つけた場合は、以下のボタンから通報できます。</p>
+      <button id="reportBtn" aria-describedby="abuse-desc">このページを通報する</button>
+      <p id="abuse-desc" class="sr-only">通報ボタンを押すと、通報フォーム（ダミー）が表示されます。</p>
+    </section>
+  </article>
+</main>
+
+<footer role="contentinfo">
+  <div class="container">
+    <p class="meta">© 2025 一般社団法人つなぎめ</p>
+  </div>
+</footer>
+
+<script>
+  // ダミー通報モーダル
+  document.getElementById('reportBtn').addEventListener('click', () => {
+    alert('通報フォーム（ダミー）: /abuse/report にPOSTします。\n本番では CAPTCHA と rate limit を実装します。');
+  });
+</script>
+</body>
+</html>
