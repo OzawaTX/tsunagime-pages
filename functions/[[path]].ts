@@ -3,7 +3,7 @@ export const onRequest: PagesFunction = async ({ request, env, next }) => {
   const norm = (p: string) => (p.endsWith('/') && p !== '/' ? p.slice(0, -1) : p)
   const here = norm(url.pathname)
 
-  // 1) まずローカルの JSON を試す
+  // 1) まずローカル JSON を試す
   let list: Array<{ path: string; within24h?: boolean }> = []
   try {
     const res = await fetch(`${url.origin}/_data/withdrawn.json`, { cf: { cacheTtl: 30 } })
@@ -12,7 +12,7 @@ export const onRequest: PagesFunction = async ({ request, env, next }) => {
     }
   } catch {}
 
-  // 2) 無ければ Writer から直取得
+  // 2) 無ければ Writer から直取得（env に設定した WRITER_BASE / ADMIN_TOKEN）
   if (list.length === 0 && env.WRITER_BASE && env.ADMIN_TOKEN) {
     try {
       const api = new URL('/internal/export/withdrawn', env.WRITER_BASE as string)
@@ -37,7 +37,7 @@ export const onRequest: PagesFunction = async ({ request, env, next }) => {
   }
 
   const res = await next()
-  res.headers.set('X-Functions', 'hit')
+  res.headers.set('X-Functions', 'hit') // 発火確認
   res.headers.set('X-Robots-Tag', 'noai, noimageai')
   res.headers.set('tdm-reservation', '1')
   res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
@@ -49,4 +49,3 @@ declare global {
   const WRITER_BASE: string
   const ADMIN_TOKEN: string
 }
-
