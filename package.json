@@ -1,0 +1,8 @@
+{
+  "name": "tsunagime-pages",
+  "private": true,
+  "scripts": {
+    "prebuild": "node scripts/fetch-withdrawn.mjs",
+    "build": "echo build"
+  }
+}
