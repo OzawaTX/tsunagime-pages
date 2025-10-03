@@ -1,19 +1,10 @@
-// functions/posts/[[slug]].ts
-export const onRequest: PagesFunction = async ({ request, env }) => {
+export const onRequest: PagesFunction = async ({ request, env, next }) => {
   const url = new URL(request.url)
   const norm = (p: string) => (p.endsWith('/') && p !== '/' ? p.slice(0, -1) : p)
+  const here = norm(url.pathname)
 
-  // 1) ローカルJSON（/_data/withdrawn.json）を試す
   let list: Array<{ path: string; within24h?: boolean }> = []
-  try {
-    const res = await fetch(`${url.origin}/_data/withdrawn.json`, { cf: { cacheTtl: 30 } })
-    if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
-      list = await res.json()
-    }
-  } catch {}
-
-  // 2) 無ければ Writer から直取得
-  if (list.length === 0 && env.WRITER_BASE && env.ADMIN_TOKEN) {
+  if (env.WRITER_BASE && env.ADMIN_TOKEN) {
     try {
       const api = new URL('/internal/export/withdrawn', env.WRITER_BASE as string)
       const res = await fetch(api.toString(), {
@@ -24,9 +15,7 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
     } catch {}
   }
 
-  const here = norm(url.pathname)                       // 例: /posts/4PesQ...
-  const hit = list.find(x => norm(x.path) === here)     // 末尾スラ差を吸収
-
+  const hit = list.find(x => norm(x.path) === here)
   if (hit) {
     return new Response('', {
       status: 410,
@@ -40,11 +29,5 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
     })
   }
 
-  // 該当しなければ静的へ（/posts 下はSPAでもOK）
-  return fetch(url.toString())
-}
-
-declare global {
-  const WRITER_BASE: string
-  const ADMIN_TOKEN: string
+  return next()
 }
