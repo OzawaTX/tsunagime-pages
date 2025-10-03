@@ -3,7 +3,7 @@ export const onRequest: PagesFunction = async ({ request, env, next }) => {
   const norm = (p: string) => (p.endsWith('/') && p !== '/' ? p.slice(0, -1) : p)
   const here = norm(url.pathname)
 
-  // 1) まずローカル JSON（/_data/withdrawn.json）を試す
+  // 1) まずローカル JSON を試す（/_data/withdrawn.json）
   let list: Array<{ path: string; within24h?: boolean }> = []
   try {
     const res = await fetch(`${url.origin}/_data/withdrawn.json`, { cf: { cacheTtl: 30 } })
@@ -12,7 +12,7 @@ export const onRequest: PagesFunction = async ({ request, env, next }) => {
     }
   } catch {}
 
-  // 2) 無ければ Writer から直取得（環境変数を使う）
+  // 2) 無ければ Writer から直取得（環境変数を使用）
   if (list.length === 0 && env.WRITER_BASE && env.ADMIN_TOKEN) {
     try {
       const api = new URL('/internal/export/withdrawn', env.WRITER_BASE as string)
@@ -24,20 +24,22 @@ export const onRequest: PagesFunction = async ({ request, env, next }) => {
     } catch {}
   }
 
-  // 3) パス一致（末尾スラ差を吸収）
+  // 3) 照合（末尾スラッシュ差を吸収）
   const hit = list.find(x => norm(x.path) === here)
   if (hit) {
-    const headers = new Headers({
-      'Cache-Control': hit.within24h ? 'no-store' : 'public, max-age=60',
-      'X-Robots-Tag': 'noai, noimageai',
-      'tdm-reservation': '1',
-      'X-Content-Type-Options': 'nosniff',
-      'Content-Type': 'text/plain; charset=utf-8',
+    return new Response('', {
+      status: 410,
+      headers: {
+        'Cache-Control': hit.within24h ? 'no-store' : 'public, max-age=60',
+        'X-Robots-Tag': 'noai, noimageai',
+        'tdm-reservation': '1',
+        'X-Content-Type-Options': 'nosniff',
+        'Content-Type': 'text/plain; charset=utf-8',
+      }
     })
-    return new Response('', { status: 410, headers })
   }
 
-  // 4) 通常レスポンス（共通ヘッダ）
+  // 4) 通常レスポンス（共通ヘッダ付与）
   const res = await next()
   res.headers.set('X-Robots-Tag', 'noai, noimageai')
   res.headers.set('tdm-reservation', '1')
