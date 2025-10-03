@@ -2,6 +2,10 @@
 export const onRequest: PagesFunction = async ({ request, env, next }) => {
   const url = new URL(request.url)
   const path = url.pathname
+// ★ /posts の「スラ無し」を 301 で「スラあり」に正規化（撤回チェックの前に実行）
+if (path.startsWith('/posts/') && !path.endsWith('/')) {
+  return Response.redirect(url.origin + path + '/' + url.search, 301)
+}
 
   // 1) これらのパスは素通り（無限ループ防止 & 静的高速化）
   const isStaticExt = /\.[a-z0-9]+$/i.test(path)
