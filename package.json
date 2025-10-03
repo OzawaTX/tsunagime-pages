@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prebuild": "node scripts/fetch-withdrawn.mjs && node scripts/prune-withdrawn.mjs",
+    "prebuild": "node scripts/prune-withdrawn.mjs",
     "build": "echo build ok"
   }
 }
