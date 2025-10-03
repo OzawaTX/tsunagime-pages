@@ -4,7 +4,6 @@
   "exclude": [
     "/_assets/*",
     "/_pagefind/*",
-    "/_data/*",
     "/favicon.ico",
     "/robots.txt",
     "/*.css",
