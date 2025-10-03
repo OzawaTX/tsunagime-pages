@@ -2,4 +2,4 @@
 [
   { "path": "/posts/ZbFWwkUxaBrlzBbkh4KQy", "within24h": true }
 ]
-'@ | Out-File -Encoding utf8 _data\withdrawn.json
+'@ | Out-File -Encoding utf8 -NoNewline _data\withdrawn.json
