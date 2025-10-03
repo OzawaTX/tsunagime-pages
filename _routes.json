@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "include": ["/*"],
+  "exclude": [
+    "/_assets/*",
+    "/_pagefind/*",
+    "/_data/*",
+    "/favicon.ico",
+    "/robots.txt",
+    "/*.css",
+    "/*.js",
+    "/*.map",
+    "/*.png",
+    "/*.jpg",
+    "/*.webp",
+    "/*.avif",
+    "/*.svg"
+  ]
+}
