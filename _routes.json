@@ -2,7 +2,6 @@
   "version": 1,
   "include": ["/*"],
   "exclude": [
-    "/_assets/*",
     "/_pagefind/*",
     "/favicon.ico",
     "/robots.txt",
