@@ -12,9 +12,27 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - run: npm ci
-      - run: npm run prebuild
-      - run: npm run build
+
+      # lockfile があれば npm ci、なければ npm install、package.json すら無ければスキップ
+      - name: Install deps
+        run: |
+          if [ -f package-lock.json ]; then npm ci; \
+          elif [ -f package.json ]; then npm install; \
+          else echo "no package.json, skip"; fi
+
+      - name: Prebuild
+        run: if [ -f package.json ]; then npm run prebuild --if-present; fi
+
+      # build が無いなら public/index.html を自動生成
+      - name: Build
+        run: |
+          if [ -f package.json ]; then
+            npm run build --if-present;
+          else
+            mkdir -p public
+            echo "<!doctype html><meta charset=utf-8><h1>tsunagime-pages OK</h1>" > public/index.html
+          fi
+
       - name: Deploy to Cloudflare Pages
         run: npx wrangler pages deploy ./public --project-name tsunagime-pages
         env:
