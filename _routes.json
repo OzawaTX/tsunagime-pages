@@ -1,17 +1,5 @@
 {
   "version": 1,
   "include": ["/*"],
-  "exclude": [
-    "/_pagefind/*",
-    "/favicon.ico",
-    "/robots.txt",
-    "/*.css",
-    "/*.js",
-    "/*.map",
-    "/*.png",
-    "/*.jpg",
-    "/*.webp",
-    "/*.avif",
-    "/*.svg"
-  ]
+  "exclude": ["/_headers", "/_redirects", "/public/*"]
 }

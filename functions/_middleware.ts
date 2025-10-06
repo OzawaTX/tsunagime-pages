@@ -1,68 +1,69 @@
-// functions/_middleware.ts
-export const onRequest: PagesFunction = async ({ request, env, next }) => {
-  const url = new URL(request.url)
-  const path = url.pathname
-// ★ /posts の「スラ無し」を 301 で「スラあり」に正規化（撤回チェックの前に実行）
-if (path.startsWith('/posts/') && !path.endsWith('/')) {
-  return Response.redirect(url.origin + path + '/' + url.search, 301)
-}
+export const onRequest: PagesFunction = async (context) => {
+  const { request, next } = context;
+  const url = new URL(request.url);
 
-  // 1) これらのパスは素通り（無限ループ防止 & 静的高速化）
-  const isStaticExt = /\.[a-z0-9]+$/i.test(path)
-  if (
-    path === '/ping' ||
-    path.startsWith('/_data/') ||
-    path.startsWith('/_pagefind/') ||
-    path.startsWith('/assets/') ||
-    isStaticExt
-  ) {
-    return next()
+  // 静的系は素通り
+  const ext = url.pathname.match(/\.(?:css|js|mjs|map|png|jpe?g|webp|avif|gif|ico|svg|txt|json|xml|pdf|woff2?)$/i);
+  if (url.pathname.startsWith('/_pagefind') || url.pathname.startsWith('/_data') || url.pathname === '/ping' || ext) {
+    const res = await next();
+    res.headers.set('X-Robots-Tag', 'noai, noimageai');
+    res.headers.set('tdm-reservation', '1');
+    return res;
   }
 
-  // 2) Writer から撤回リストを取得（3秒タイムアウト）
-  let list: Array<{ path: string; within24h?: boolean }> = []
-  if (env.WRITER_BASE && env.ADMIN_TOKEN) {
+  // /posts/<ID> → 末尾スラ無しは301で付与
+  const noSlash = url.pathname.match(/^\/posts\/([A-Za-z0-9_\-]+)$/);
+  if (noSlash) {
+    url.pathname = `/posts/${noSlash[1]}/`;
+    return new Response(null, { status: 301, headers: { Location: url.toString() } });
+  }
+
+  // /posts/<ID>/ の公開制御
+  const m = url.pathname.match(/^\/posts\/([A-Za-z0-9_\-]+)\/$/);
+  if (m) {
+    const id = m[1];
+    const WRITER = 'https://tsunagime-writer.hidemasa-ozawa.workers.dev';
+
+    let data: any = null;
     try {
-      const api = new URL('/internal/export/withdrawn', env.WRITER_BASE as string)
-      const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 3000)
-
-      const res = await fetch(api.toString(), {
-        headers: { 'x-admin-token': env.ADMIN_TOKEN as string },
-        signal: controller.signal,
-        cf: { cacheTtl: 15 },
-      })
-      clearTimeout(timeout)
-
-      if (res.ok) list = await res.json()
+      const r = await fetch(`${WRITER}/posts/${id}/status`, { cf: { cacheTtl: 0 } });
+      if (r.status === 404) return new Response('Not Found', { status: 404 });
+      data = await r.json();
     } catch {
-      // 失敗時は list=[] のまま通常配信にフォールバック
+      return new Response('Service Unavailable', { status: 503 });
     }
+
+    // 撤回は410（撤回から24h以内はno-store）
+    if (data?.ok && data.status === 'withdrawn') {
+      let cache = 'public, max-age=60';
+      if (data.withdrawn_at) {
+        const w = new Date(data.withdrawn_at).getTime();
+        if (!Number.isNaN(w) && (Date.now() - w) <= 24*60*60*1000) cache = 'no-store';
+      }
+      return new Response('Gone', {
+        status: 410,
+        headers: { 'X-Robots-Tag': 'noai, noimageai', 'tdm-reservation': '1', 'Cache-Control': cache }
+      });
+    }
+
+    // family_only は常に非露出
+    if (data?.ok && data.visibility === 'family_only') {
+      return new Response('Not Found', {
+        status: 404,
+        headers: { 'X-Robots-Tag': 'noai, noimageai', 'tdm-reservation': '1', 'Cache-Control': 'public, max-age=60' }
+      });
+    }
+
+    // それ以外は通常配信（ヘッダ付与）
+    const res = await next();
+    res.headers.set('X-Robots-Tag', 'noai, noimageai');
+    res.headers.set('tdm-reservation', '1');
+    res.headers.set('Cache-Control', 'public, max-age=60');
+    return res;
   }
 
-  // 3) 末尾スラ差を吸収して一致判定
-  const norm = (p: string) => (p.endsWith('/') && p !== '/' ? p.slice(0, -1) : p)
-  const here = norm(path)
-  const hit = list.find(x => norm(x.path) === here)
-
-  if (hit) {
-    return new Response('', {
-      status: 410,
-      headers: {
-        'Cache-Control': hit.within24h ? 'no-store' : 'public, max-age=60',
-        'X-Robots-Tag': 'noai, noimageai',
-        'tdm-reservation': '1',
-        'X-Content-Type-Options': 'nosniff',
-        'Content-Type': 'text/plain; charset=utf-8',
-      },
-    })
-  }
-
-  // 通常配信
-  return next()
-}
-
-declare global {
-  const WRITER_BASE: string
-  const ADMIN_TOKEN: string
-}
+  const res = await next();
+  res.headers.set('X-Robots-Tag', 'noai, noimageai');
+  res.headers.set('tdm-reservation', '1');
+  return res;
+};
