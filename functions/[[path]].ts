@@ -9,15 +9,14 @@ export const onRequest: PagesFunction = async (ctx) => {
     return new Response(null, { status: 301, headers: { Location: url.toString() } });
   }
 
-  // ここまでで特別処理が無ければ、次へ（静的 or 個別関数）
+  // その他はそのまま（静的 or 個別関数）へ
   const res = await next();
 
   // 全ページ共通ヘッダ（AI/TDM拒否）
   res.headers.set('X-Robots-Tag', 'noai, noimageai');
   res.headers.set('tdm-reservation', '1');
 
-  // デバッグ用
+  // デバッグ印
   res.headers.set('X-From-CatchAll', 'yes');
-
   return res;
 };

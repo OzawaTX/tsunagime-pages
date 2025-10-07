@@ -1,16 +1,11 @@
-Set-Location C:\Users\hidem\Desktop\tsunagime-pages
-@'
 {
   "version": 1,
-  "include": ["/*"],
+  "include": [ "/*", "/posts/*" ],
   "exclude": [
     "/_pagefind/*",
     "/_data/*",
-    "/ping",
-    "/*.css","/*.js","/*.mjs","/*.map",
-    "/*.png","/*.jpg","/*.jpeg","/*.webp","/*.avif","/*.gif","/*.ico","/*.svg",
-    "/*.txt","/*.json","/*.xml","/*.pdf",
-    "/*.woff","/*.woff2"
+    "/*.css", "/*.js", "/*.mjs", "/*.map",
+    "/*.png", "/*.jpg", "/*.jpeg", "/*.webp", "/*.avif", "/*.gif", "/*.ico", "/*.svg",
+    "/*.txt", "/*.json", "/*.xml", "/*.pdf", "/*.woff", "/*.woff2"
   ]
 }
-'@ | Set-Content -Encoding UTF8 _routes.json
