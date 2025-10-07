@@ -1,4 +1,4 @@
-export const onRequest: PagesFunction = async (context) => {
+eexport const onRequest: PagesFunction = async (context) => {
   const { request, next } = context;
   const url = new URL(request.url);
 
@@ -27,7 +27,17 @@ export const onRequest: PagesFunction = async (context) => {
     let data: any = null;
     try {
       const r = await fetch(`${WRITER}/posts/${id}/status`, { cf: { cacheTtl: 0 } });
-      if (r.status === 404) return new Response('Not Found', { status: 404 });
+      // ★変更①：Writerが404でもAI/TDM拒否ヘッダを付けて返す
+      if (r.status === 404) {
+        return new Response('Not Found', {
+          status: 404,
+          headers: {
+            'X-Robots-Tag': 'noai, noimageai',
+            'tdm-reservation': '1',
+            'Cache-Control': 'public, max-age=60',
+          },
+        });
+      }
       data = await r.json();
     } catch {
       return new Response('Service Unavailable', { status: 503 });
@@ -38,7 +48,7 @@ export const onRequest: PagesFunction = async (context) => {
       let cache = 'public, max-age=60';
       if (data.withdrawn_at) {
         const w = new Date(data.withdrawn_at).getTime();
-        if (!Number.isNaN(w) && (Date.now() - w) <= 24*60*60*1000) cache = 'no-store';
+        if (!Number.isNaN(w) && (Date.now() - w) <= 24 * 60 * 60 * 1000) cache = 'no-store';
       }
       return new Response('Gone', {
         status: 410,
@@ -46,8 +56,16 @@ export const onRequest: PagesFunction = async (context) => {
       });
     }
 
-    // family_only は常に非露出
+    // family_only は常に非露出（404）
     if (data?.ok && data.visibility === 'family_only') {
+      return new Response('Not Found', {
+        status: 404,
+        headers: { 'X-Robots-Tag': 'noai, noimageai', 'tdm-reservation': '1', 'Cache-Control': 'public, max-age=60' }
+      });
+    }
+
+    // ★追加②：family_early で未公開（published 以外）は 404
+    if (data?.ok && data.visibility === 'family_early' && data.status !== 'published') {
       return new Response('Not Found', {
         status: 404,
         headers: { 'X-Robots-Tag': 'noai, noimageai', 'tdm-reservation': '1', 'Cache-Control': 'public, max-age=60' }
@@ -67,3 +85,4 @@ export const onRequest: PagesFunction = async (context) => {
   res.headers.set('tdm-reservation', '1');
   return res;
 };
+
