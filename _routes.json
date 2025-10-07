@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "include": [ "/*", "/posts/*" ],
+  "include": [ "/posts/*", "/*" ],
   "exclude": [
     "/_pagefind/*",
     "/_data/*",
