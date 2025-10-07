@@ -1,1 +1,3 @@
-/posts/:id  /posts/:id/  301
+ /posts/:id    /posts/:id/    301
+/*            /index.html     200
+
