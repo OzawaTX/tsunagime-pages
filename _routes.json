@@ -1,9 +1,5 @@
 {
   "version": 1,
-  "include": [
-    "/_middleware",
-    "/debug/*",
-    "/posts/*"
-  ],
-  "exclude": []
+  "include": ["/_middleware", "/debug/*", "/posts/*"],
+  "exclude": ["/*"]
 }
