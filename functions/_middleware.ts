@@ -1,34 +1,19 @@
 export const onRequest: PagesFunction = async ({ request, next }) => {
   const res = await next();
 
-  // 共通
-  res.headers.set("X-From-Middleware", "yes");
+  // 共通（既存ヘッダに rev を“同居”）
+  // ※ 既に yes が入っている場合は追記、無い場合は新規付与
+  const prev = res.headers.get("X-From-Middleware");
+  const merged = prev ? (prev + "; rev=2025-10-09-v9") : ("yes; rev=2025-10-09-v9");
+  res.headers.set("X-From-Middleware", merged);
+
   res.headers.set("X-Robots-Tag", "noai, noimageai");
   res.headers.set("tdm-reservation", "1");
 
-  // まず全部いったん削除（後勝ち対策）
-  for (const k of [
-    "X-Functions-Rev","X-Build-Rev","X-Rev-Test","X-Release",
-    "X-Build","X-Tag","X-Trace","X-Trace-Id","X-RevZ",
-    "X_Rev_Under","X.Rev.Dot","X-Rev-123","X-REV-UPPER"
-  ]) res.headers.delete(k);
+  // 予備（非 X- 接頭辞）— もしこれが表示されるなら “X-” 系だけが空にされている確証
+  res.headers.set("Tsunagime-Rev", "2025-10-09-v9");
 
-  // 値をセット（名前ごとの出方を比較）
-  res.headers.set("X-Functions-Rev", "2025-10-09-v8");
-  res.headers.set("X-Build-Rev", "2025-10-09-v8");
-  res.headers.set("X-Rev-Test", "2025-10-09-v8");
-  res.headers.set("X-Release", "2025-10-09-v8");
-  res.headers.set("X-Build", "2025-10-09-v8");
-  res.headers.set("X-Tag", "2025-10-09-v8");
-  res.headers.set("X-Trace", "2025-10-09-v8");
-  res.headers.set("X-Trace-Id", "2025-10-09-v8");
-  res.headers.set("X-RevZ", "2025-10-09-v8");
-  res.headers.set("X_Rev_Under", "2025-10-09-v8");
-  res.headers.set("X.Rev.Dot", "2025-10-09-v8");
-  res.headers.set("X-Rev-123", "2025-10-09-v8");
-  res.headers.set("X-REV-UPPER", "2025-10-09-v8");
-
-  // /posts の 404/503 は確実に no-store（delete → set）
+  // /posts/ の識別と 404/503 の no-store 固定
   const { pathname } = new URL(request.url);
   if (pathname.startsWith("/posts/")) {
     if (!res.headers.get("X-From-Posts-Function")) {
