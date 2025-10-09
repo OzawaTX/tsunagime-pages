@@ -1,14 +1,14 @@
 export const onRequest: PagesFunction = async () => {
   const h = new Headers({
     "X-Debug-Route": "debug/no-store",
+    "X-Rev-Touch":  new Date().toISOString(),
     "X-Robots-Tag": "noai, noimageai",
     "tdm-reservation": "1",
-    // エッジ/ブラウザとも no-store を明示
     "Cache-Control": "no-store, no-cache, must-revalidate",
     "CDN-Cache-Control": "no-store",
     "Pragma": "no-cache",
     "Expires": "0"
   });
   h.set("X-Reason", "debug_no_store");
-  return new Response("debug no-store", { status: 404, headers: h });
+  return new Response("debug no-store (from Function)", { status: 404, headers: h });
 };
