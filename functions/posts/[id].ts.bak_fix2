@@ -1,8 +1,8 @@
-// Cloudflare Pages Functions: /posts/[id]
+// NOTE: Cloudflare Pages Functions (/posts/[id])
 export const onRequest: PagesFunction = async ({ request, next }) => {
   const url = new URL(request.url);
 
-  // 早期 return でも必ず付く共通ヘッダ
+  // すべての早期 return に必ず付く共通ヘッダ
   const common: Record<string, string> = {
     "X-Robots-Tag": "noai, noimageai",
     "tdm-reservation": "1",
