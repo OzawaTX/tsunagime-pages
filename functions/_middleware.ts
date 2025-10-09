@@ -5,7 +5,8 @@ export const onRequest: PagesFunction = async ({ request, next }) => {
   // 共通ヘッダ（静的/動的すべてに付与）
   res.headers.set("X-Tsunagime-Functions", "yes");
   res.headers.set("X-Robots-Tag", "noai, noimageai");
-  res.headers.set("tdm-reservation", "1");
+  res.headers.set("X-Functions-Rev", "2025-10-09-v2");
+res.headers.set("tdm-reservation", "1");
 
   // /posts/ 以下には識別ヘッダ
   const { pathname } = new URL(request.url);
@@ -14,5 +15,6 @@ export const onRequest: PagesFunction = async ({ request, next }) => {
   }
   return res;
 };
+
 
 
