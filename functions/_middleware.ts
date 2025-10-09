@@ -18,6 +18,12 @@ export const onRequest: PagesFunction = async ({ request, next, env }) => {
   // /posts/ 以下のエラーは no-store を強制
   const { pathname } = new URL(request.url);
   if (pathname.startsWith('/posts/')) {
+    // 404/503 は no-store を“予備ヘッダ”でも明示
+    if (res.status === 404 || res.status === 503) {
+      res.headers.set('Pragma', 'no-cache');      // 旧式ブラウザ系
+      res.headers.set('Expires', '0');            // 即時失効
+      res.headers.set('X-Cache-Policy', 'no-store'); // 監視用マーカー
+    }
     if (!res.headers.get('X-From-Posts-Function')) {
       res.headers.set('X-From-Posts-Function','yes');
     }
@@ -31,3 +37,4 @@ export const onRequest: PagesFunction = async ({ request, next, env }) => {
 
   return res;
 };
+
