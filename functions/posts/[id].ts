@@ -1,3 +1,15 @@
+function makeError(status: number, reason: string, body: string) {
+  const resp = new Headers({
+    "X-Robots-Tag": "noai, noimageai",
+    "tdm-reservation": "1",
+    "X-From-Posts-Function": "yes",
+  });
+  resp.set("X-Reason", reason);
+  // エッジ・ブラウザともに強制 no-store
+  resp.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  resp.set("CDN-Cache-Control", "no-store");
+  return new Response(body, { status, headers: resp });
+}
 // Cloudflare Pages Functions: /posts/[id]
 export const onRequest: PagesFunction = async ({ request, next }) => {
   const url = new URL(request.url);
@@ -96,4 +108,5 @@ resp.headers.set("Cache-Control", "no-store");
   res.headers.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=30");
   return res;
 };
+
 
