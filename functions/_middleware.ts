@@ -1,5 +1,22 @@
 /* Cloudflare Pages Middleware: common headers + safe rev */
 export const onRequest: PagesFunction = async ({ request, next, env }) => {
+    // --- 🔧 /debug/no-store は最優先でここから返す（Functions到達の強制確認用） ---
+  {
+    const { pathname } = new URL(request.url);
+    if (pathname === "/debug/no-store" || pathname === "/debug/no-store/") {
+      const h = new Headers({
+        "X-From-Middleware": "yes",
+        "X-Debug-Route": "debug/no-store@mw",
+        "X-Robots-Tag": "noai, noimageai",
+        "tdm-reservation": "1",
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "CDN-Cache-Control": "no-store",
+        "Pragma": "no-cache",
+        "Expires": "0"
+      });
+      return new Response("debug no-store (from middleware)", { status: 404, headers: h });
+    }
+  }
   const res = await next();
 
   // 共通ヘッダ
@@ -37,4 +54,5 @@ export const onRequest: PagesFunction = async ({ request, next, env }) => {
 
   return res;
 };
+
 
