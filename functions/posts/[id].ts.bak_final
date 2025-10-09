@@ -2,7 +2,7 @@
 export const onRequest: PagesFunction = async ({ request, next }) => {
   const url = new URL(request.url);
 
-  // 早期 return 含め全レスポンスに入る共通ヘッダ
+  // 早期 return でも必ず付く共通ヘッダ
   const common: Record<string, string> = {
     "X-Robots-Tag": "noai, noimageai",
     "tdm-reservation": "1",
