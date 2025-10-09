@@ -1,4 +1,4 @@
 {
   "version": 1,
-  "include": ["/_middleware", "/debug/*", "/posts/*"]
+  "include": ["/_middleware", "/posts/*", "/debug/*"]
 }
