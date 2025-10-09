@@ -1,11 +1,9 @@
 {
   "version": 1,
   "include": [
-    "/_middleware",        // 全体ミドルウェア
-    "/debug/*",            // デバッグ系は関数で必ず処理
-    "/posts/*"             // 投稿は関数で必ず処理
+    "/_middleware",
+    "/debug/*",
+    "/posts/*"
   ],
-  "exclude": [
-    // それ以外は静的（または SPA キャッチオール）に任せる
-  ]
+  "exclude": []
 }
