@@ -24,7 +24,9 @@ export const onRequest: PagesFunction = async ({ request, next }) => {
   if (!m) {
     const resp = new Response("Not Found", { status: 404, headers: BASE });
     resp.headers.set("X-Reason", "pattern_mismatch");
-    resp.headers.set("Cache-Control", "no-store");
+      resp.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  resp.headers.set("CDN-Cache-Control", "no-store");
+resp.headers.set("Cache-Control", "no-store");
     return resp;
   }
   const id = m[1];
@@ -37,14 +39,18 @@ export const onRequest: PagesFunction = async ({ request, next }) => {
     if (r.status === 404) {
       const resp = new Response("Not Found", { status: 404, headers: BASE });
       resp.headers.set("X-Reason", "writer_not_found");
-      resp.headers.set("Cache-Control", "no-store");
+        resp.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  resp.headers.set("CDN-Cache-Control", "no-store");
+resp.headers.set("Cache-Control", "no-store");
       return resp;
     }
     data = await r.json();
   } catch {
     const resp = new Response("Service Unavailable", { status: 503, headers: BASE });
     resp.headers.set("X-Reason", "writer_fetch_error");
-    resp.headers.set("Cache-Control", "no-store");
+      resp.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  resp.headers.set("CDN-Cache-Control", "no-store");
+resp.headers.set("Cache-Control", "no-store");
     return resp;
   }
 
@@ -65,7 +71,9 @@ export const onRequest: PagesFunction = async ({ request, next }) => {
   if (data?.ok && data.visibility === "family_only") {
     const resp = new Response("Not Found", { status: 404, headers: BASE });
     resp.headers.set("X-Reason", "family_only");
-    resp.headers.set("Cache-Control", "no-store");
+      resp.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  resp.headers.set("CDN-Cache-Control", "no-store");
+resp.headers.set("Cache-Control", "no-store");
     return resp;
   }
 
@@ -73,7 +81,9 @@ export const onRequest: PagesFunction = async ({ request, next }) => {
   if (data?.ok && data.visibility === "family_early" && data.status !== "published") {
     const resp = new Response("Not Found", { status: 404, headers: BASE });
     resp.headers.set("X-Reason", "family_early_prepub");
-    resp.headers.set("Cache-Control", "no-store");
+      resp.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  resp.headers.set("CDN-Cache-Control", "no-store");
+resp.headers.set("Cache-Control", "no-store");
     return resp;
   }
 
@@ -86,3 +96,4 @@ export const onRequest: PagesFunction = async ({ request, next }) => {
   res.headers.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=30");
   return res;
 };
+
