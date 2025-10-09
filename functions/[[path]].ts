@@ -1,5 +1,11 @@
 export const onRequest: PagesFunction = async (ctx) => {
   const { request, next } = ctx;
+  const { pathname } = new URL(request.url);
+  // ---- pass-through for debug & posts ----
+  if (pathname.startsWith('/debug/') || pathname.startsWith('/posts/')) {
+    return await next();
+  }
+  const { request, next } = ctx;
   const url = new URL(request.url);
 
   // ★ /posts/<id>（末尾スラ無し）を検出して 301 に揃える（最優先でreturn）
@@ -26,3 +32,4 @@ export const onRequest: PagesFunction = async (ctx) => {
   res.headers.set("X-From-CatchAll", "yes");
   return res;
 };
+
