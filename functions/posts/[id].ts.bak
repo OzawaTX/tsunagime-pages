@@ -69,11 +69,9 @@ export const onRequest: PagesFunction = async (ctx) => {
   const res = await next();
   res.headers.set("X-Robots-Tag", "noai, noimageai");
   res.headers.set("tdm-reservation", "1");
-  
-    res.headers.set('X-From-Functions','yes');
+  res.headers.set("X-From-Posts-Function", "yes");
   res.headers.set("X-Reason", "public_ok");
   res.headers.set("Cache-Control", "public, max-age=60");
   return res;
 };
-
 
