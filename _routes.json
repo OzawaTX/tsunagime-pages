@@ -1,12 +1,9 @@
 {
   "version": 1,
-  "include": [ "/posts/*", "/*" ],
-  "exclude": [
-    "/_pagefind/*",
-    "/_data/*",
-    "/*.css", "/*.js", "/*.mjs", "/*.map",
-    "/*.png", "/*.jpg", "/*.jpeg", "/*.webp", "/*.avif", "/*.gif", "/*.ico", "/*.svg",
-    "/*.txt", "/*.json", "/*.xml", "/*.pdf", "/*.woff", "/*.woff2"
-  ]
+  "include": [
+    "/_middleware",
+    "/debug/*",
+    "/posts/*"
+  ],
+  "exclude": []
 }
-
