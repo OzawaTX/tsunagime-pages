@@ -1,30 +1,31 @@
-export const onRequest: PagesFunction = async ({ request, next }) => {
+/* Cloudflare Pages Middleware: common headers + safe rev */
+export const onRequest: PagesFunction = async ({ request, next, env }) => {
   const res = await next();
 
-  // 共通（既存ヘッダに rev を“同居”）
-  // ※ 既に yes が入っている場合は追記、無い場合は新規付与
-  const prev = res.headers.get("X-From-Middleware");
-  const merged = prev ? (prev + "; rev=2025-10-09-v9") : ("yes; rev=2025-10-09-v9");
-  res.headers.set("X-From-Middleware", merged);
+  // 共通ヘッダ
+  res.headers.set('X-From-Middleware','yes');
+  res.headers.set('X-Robots-Tag','noai, noimageai');
+  res.headers.set('tdm-reservation','1');
 
-  res.headers.set("X-Robots-Tag", "noai, noimageai");
-  res.headers.set("tdm-reservation", "1");
+  // rev は (1) 環境変数 > (2) 既存値 > (3) デフォルト の順で決定
+  const existing = res.headers.get('X-Functions-Rev');
+  const candidate = (env?.TSUNAGIME_REV ?? env?.BUILD_REV ?? 'rev-20251009-233035');
+  const finalRev = (candidate && String(candidate).trim().length > 0) ? candidate :
+                   (existing && existing.trim().length > 0) ? existing :
+                   'rev-20251009-233035';
+  res.headers.set('X-Functions-Rev', String(finalRev));
 
-  // 予備（非 X- 接頭辞）— もしこれが表示されるなら “X-” 系だけが空にされている確証
-  res.headers.set("Tsunagime-Rev", "2025-10-09-v9");
-
-  // /posts/ の識別と 404/503 の no-store 固定
+  // /posts/ 以下のエラーは no-store を強制
   const { pathname } = new URL(request.url);
-  if (pathname.startsWith("/posts/")) {
-    if (!res.headers.get("X-From-Posts-Function")) {
-      res.headers.set("X-From-Posts-Function", "yes");
+  if (pathname.startsWith('/posts/')) {
+    if (!res.headers.get('X-From-Posts-Function')) {
+      res.headers.set('X-From-Posts-Function','yes');
     }
     if (res.status === 404 || res.status === 503) {
-      for (const k of ["Cache-Control","CDN-Cache-Control","Pragma","Expires"]) res.headers.delete(k);
-      res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
-      res.headers.set("CDN-Cache-Control", "no-store");
-      res.headers.set("Pragma", "no-cache");
-      res.headers.set("Expires", "0");
+      res.headers.set('Cache-Control','no-store, no-cache, must-revalidate');
+      res.headers.set('CDN-Cache-Control','no-store');
+      res.headers.set('Pragma','no-cache');
+      res.headers.set('Expires','0');
     }
   }
 
