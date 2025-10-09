@@ -3,7 +3,6 @@ export const onRequest: PagesFunction = async () => {
     "X-Debug-Route": "debug/no-store",
     "X-Robots-Tag": "noai, noimageai",
     "tdm-reservation": "1",
-    // エッジ/ブラウザとも no-store を明示
     "Cache-Control": "no-store, no-cache, must-revalidate",
     "CDN-Cache-Control": "no-store",
     "Pragma": "no-cache",
