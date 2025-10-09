@@ -3,7 +3,7 @@ export const onRequest: PagesFunction = async ({ request, next }) => {
   const res = await next();
 
   // 共通ヘッダ（静的/動的すべてに付与）
-  res.headers.set("X-Tsunagime-Functions", "yes");
+  res.headers.set("X-From-Functions", "yes");
   res.headers.set("X-Robots-Tag", "noai, noimageai");
   res.headers.set("tdm-reservation", "1");
 
@@ -14,4 +14,3 @@ export const onRequest: PagesFunction = async ({ request, next }) => {
   }
   return res;
 };
-

@@ -12,7 +12,7 @@ export const onRequest: PagesFunction = async (ctx) => {
   const mNoSlash = url.pathname.match(/^\/posts\/([A-Za-z0-9_\-]+)$/);
   if (mNoSlash) {
     url.pathname = `/posts/${mNoSlash[1]}/`;
-    res.headers.set('X-From-Functions','yes');
+    res.headers.set('X-Tsunagime-Functions','yes');
   return new Response(null, {
       status: 301,
       headers: { ...common, "X-Reason": "add_trailing_slash@[id]", "Location": url.toString() },
@@ -22,7 +22,7 @@ export const onRequest: PagesFunction = async (ctx) => {
   // ② ここからは /posts/<id>/ のみ
   const m = url.pathname.match(/^\/posts\/([A-Za-z0-9_\-]+)\/$/);
   if (!m) {
-    res.headers.set('X-From-Functions','yes');
+    res.headers.set('X-Tsunagime-Functions','yes');
   return new Response("Not Found", { status: 404, headers: { ...common, "X-Reason": "pattern_mismatch" } });
   }
   const id = m[1];
@@ -33,12 +33,12 @@ export const onRequest: PagesFunction = async (ctx) => {
   try {
     const r = await fetch(`${WRITER}/posts/${id}/status`, { cf: { cacheTtl: 0 } });
     if (r.status === 404) {
-      res.headers.set('X-From-Functions','yes');
+      res.headers.set('X-Tsunagime-Functions','yes');
   return new Response("Not Found", { status: 404, headers: { ...common, "X-Reason": "writer_not_found" } });
     }
     data = await r.json();
   } catch {
-    res.headers.set('X-From-Functions','yes');
+    res.headers.set('X-Tsunagime-Functions','yes');
   return new Response("Service Unavailable", { status: 503, headers: { ...common, "X-Reason": "writer_fetch_error" } });
   }
 
@@ -49,19 +49,19 @@ export const onRequest: PagesFunction = async (ctx) => {
       const w = new Date(data.withdrawn_at).getTime();
       if (!Number.isNaN(w) && (Date.now() - w) <= 24 * 60 * 60 * 1000) cache = "no-store";
     }
-    res.headers.set('X-From-Functions','yes');
+    res.headers.set('X-Tsunagime-Functions','yes');
   return new Response("Gone", { status: 410, headers: { ...common, "X-Reason": "withdrawn", "Cache-Control": cache } });
   }
 
   // family_only は常に 404
   if (data?.ok && data.visibility === "family_only") {
-    res.headers.set('X-From-Functions','yes');
+    res.headers.set('X-Tsunagime-Functions','yes');
   return new Response("Not Found", { status: 404, headers: { ...common, "X-Reason": "family_only" } });
   }
 
   // family_early で未公開は 404
   if (data?.ok && data.visibility === "family_early" && data.status !== "published") {
-    res.headers.set('X-From-Functions','yes');
+    res.headers.set('X-Tsunagime-Functions','yes');
   return new Response("Not Found", { status: 404, headers: { ...common, "X-Reason": "family_early_prepub" } });
   }
 
@@ -70,10 +70,11 @@ export const onRequest: PagesFunction = async (ctx) => {
   res.headers.set("X-Robots-Tag", "noai, noimageai");
   res.headers.set("tdm-reservation", "1");
   
-    res.headers.set('X-From-Functions','yes');
+    res.headers.set('X-Tsunagime-Functions','yes');
   res.headers.set("X-Reason", "public_ok");
   res.headers.set("Cache-Control", "public, max-age=60");
   return res;
 };
+
 
 
