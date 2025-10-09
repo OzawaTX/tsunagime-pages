@@ -67,6 +67,7 @@ export const onRequest: PagesFunction = async ({ request, next }) => {
   res.headers.set("X-From-Posts-Function", "yes");
   res.headers.set("X-Tsunagime-Functions", "yes");
   res.headers.set("X-Reason", "public_ok");
-  res.headers.set("Cache-Control", "public, max-age=60");
+  res.headers.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=30");
   return res;
 };
+
