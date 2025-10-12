@@ -1,41 +1,36 @@
-/* Cloudflare Pages Middleware: force early return for /debug/no-store (+tracing) */
+/* Cloudflare Pages Middleware: FORCE short-circuit for /debug/* */
 export const onRequest: PagesFunction = async ({ request, next }) => {
-  // ===== EARLY RETURN: /debug/no-store* は必ずここから 404 を返す =====
-  {
-    const u = new URL(request.url);
-    const pathname = u.pathname;
-    // 末尾スラ有無/クエリ有無/将来のサブパスにも強めに対応
-    if (pathname === "/debug/no-store" || pathname === "/debug/no-store/" || pathname.startsWith("/debug/no-store")) {
-      const h = new Headers({
-        "X-Hit-Point": "mw-early",
-        "X-Debug-Route": "debug/no-store@mw",
-        "X-Pathname": pathname,
-        "X-From-Middleware": "yes",
-        "X-Robots-Tag": "noai, noimageai",
-        "tdm-reservation": "1",
-        "Cache-Control": "no-store, no-cache, must-revalidate",
-        "CDN-Cache-Control": "no-store",
-        "Pragma": "no-cache",
-        "Expires": "0"
-      });
-      return new Response("debug no-store (from middleware early return)", { status: 404, headers: h });
-    }
+  const u = new URL(request.url);
+  const p = u.pathname;
+
+  // ===== 強制ショートサーキット（/debug/* 全部）=====
+  if (p === "/debug" || p.startsWith("/debug/")) {
+    const h = new Headers({
+      "X-Hit-Point": "mw-early",
+      "X-Debug-Route": "debug/*@mw",
+      "X-Pathname": p,
+      "X-From-Middleware": "yes",
+      "X-Robots-Tag": "noai, noimageai",
+      "tdm-reservation": "1",
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+      "CDN-Cache-Control": "no-store",
+      "Pragma": "no-cache",
+      "Expires": "0"
+    });
+    return new Response("blocked by middleware (/debug/*)", { status: 404, headers: h });
   }
 
   // ===== 通常フロー =====
   const res = await next();
 
-  // 共通ヘッダ（ダブり防止のため set だけ）
+  // 共通ヘッダ
   res.headers.set("X-From-Middleware", "yes");
   res.headers.set("X-Robots-Tag", "noai, noimageai");
   res.headers.set("tdm-reservation", "1");
 
-  // /posts/ 応答の識別補完
-  const { pathname } = new URL(request.url);
-  if (pathname.startsWith("/posts/")) {
-    if (!res.headers.get("X-From-Posts-Function")) {
-      res.headers.set("X-From-Posts-Function", "yes");
-    }
+  // /posts/ の識別補完
+  if (p.startsWith("/posts/") && !res.headers.get("X-From-Posts-Function")) {
+    res.headers.set("X-From-Posts-Function", "yes");
   }
 
   return res;
