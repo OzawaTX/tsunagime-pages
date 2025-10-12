@@ -10,9 +10,7 @@ export const onRequest: PagesFunction = async ({ request, next, env }) => {
   // Security (落ちてもOKな穏当セット)
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   res.headers.set("X-Content-Type-Options", "nosniff");
-  res.headers.set("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
-
-  // rev: 環境変数>既存>デフォルト
+  res.headers.set("Permissions-Policy","geolocation=(), microphone=()");// rev: 環境変数>既存>デフォルト
   const envRev = env?.TSUNAGIME_REV ?? env?.BUILD_REV ?? "rev-20251012-231524";
   const curRev = res.headers.get("X-Functions-Rev");
   const finalRev = (envRev && String(envRev).trim()) || (curRev && curRev.trim()) || "rev-20251012-231524";
@@ -25,3 +23,4 @@ export const onRequest: PagesFunction = async ({ request, next, env }) => {
   }
   return res;
 };
+
