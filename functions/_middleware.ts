@@ -1,6 +1,49 @@
 /* Cloudflare Pages Middleware: common headers + rev + security */
 export const onRequest: PagesFunction = async ({ request, next, env }) => {
   const res = await next();
+// --- ETag/LM + 304 for /posts/* (debug-forced) ---
+try {
+  const url = new URL(request.url);
+  const pathname = url.pathname;
+
+  if (pathname.startsWith("/posts/")) {
+    // ここは常に打刻して通過を可視化
+    const rev = res.headers.get("X-Functions-Rev") || "rev-fallback";
+    const dbg = `W/"${pathname}:${rev}"`;
+    res.headers.set("X-ETag-Debug", dbg);
+    const base = (res.headers.get("Last-Modified") || res.headers.get("Date") || new Date().toUTCString());
+    res.headers.set("X-LM-Debug-Base", base);
+    res.headers.set("X-MW-Probe", "etag-v2-forced");
+
+    // 2xx のみ実ETag/LMを補完
+    if (res.status >= 200 && res.status < 300) {
+      if (!res.headers.get("ETag"))           res.headers.set("ETag", dbg);
+      if (!res.headers.get("Last-Modified"))  res.headers.set("Last-Modified", base);
+
+      // 条件付き判定
+      const inm = request.headers.get("If-None-Match");
+      const ims = request.headers.get("If-Modified-Since");
+      const currentEtag = res.headers.get("ETag");
+      const lmHdr = res.headers.get("Last-Modified");
+
+      const matchByEtag = !!(inm && currentEtag && inm.split(",").map(s => s.trim()).includes(currentEtag));
+      const matchByTime = !!(ims && lmHdr && Date.parse(ims) >= Date.parse(lmHdr));
+
+      // 条件付き変化に反応するように
+      res.headers.set("Vary", [res.headers.get("Vary"), "If-None-Match", "If-Modified-Since"].filter(Boolean).join(", "));
+
+      if (matchByEtag || matchByTime) {
+        return new Response(null, { status: 304, headers: res.headers });
+      }
+    } else {
+      // なぜ実ETagを付けなかったかの理由
+      res.headers.set("X-Why-No-ETag", `status=${res.status}`);
+    }
+  }
+} catch (e) {
+  res.headers.set("X-MW-Probe-Error", "etag-block-error");
+}
+// --- /ETag block ---
   //\ ---\ ETag/Last-Modified\ \+\ 304\ handling\ for\ /posts/\*\ \(middleware\ v2\)\ ---
 try\ \{
 \ \ const\ url\ =\ new\ URL\(request\.url\);
@@ -67,6 +110,7 @@ try\ \{
   }
   return res;
 };
+
 
 
 
