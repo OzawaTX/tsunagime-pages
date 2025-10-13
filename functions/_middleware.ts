@@ -1,5 +1,14 @@
 export const onRequest: PagesFunction = async ({ request, next }) => {
   const res = await next();
+  // --- mw-probe ---
+  res.headers.set("X-MW-Version", "mw-probe-20251013-2");
+  {
+    const { pathname } = new URL(request.url);
+    if (pathname.startsWith("/posts/")) {
+      res.headers.set("X-Posts-Probe", "hit");
+    }
+  }
+  // --- /mw-probe ---
 
   // まずは必ず見える共通印（これが無ければデプロイ未反映）
   res.headers.set("X-MW-Version","mw-probe-20251013-1");
@@ -47,3 +56,4 @@ export const onRequest: PagesFunction = async ({ request, next }) => {
 
   return res;
 };
+
