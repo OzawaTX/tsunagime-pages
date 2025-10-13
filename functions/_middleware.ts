@@ -1,48 +1,50 @@
 /* Cloudflare Pages Middleware: common headers + rev + security */
 export const onRequest: PagesFunction = async ({ request, next, env }) => {
   const res = await next();
-  // --- ETag/Last-Modified + 304 handling for /posts/* (middleware) ---
-  try {
-    const { pathname } = new URL(request.url);
-    if (pathname.startsWith("/posts/") && res && res.status >= 200 && res.status < 300) {
-      // 既存値を尊重
-      const hasETag = !!res.headers.get("ETag");
-      const hasLM   = !!res.headers.get("Last-Modified");
+  //\ ---\ ETag/Last-Modified\ \+\ 304\ handling\ for\ /posts/\*\ \(middleware\ v2\)\ ---
+try\ \{
+\ \ const\ url\ =\ new\ URL\(request\.url\);
+\ \ const\ pathname\ =\ url\.pathname;
 
-      // ETag が無ければ URL + rev から弱いETagを生成（安定・低衝突）
-      if (!hasETag) {
-        const rev = res.headers.get("X-Functions-Rev") || "rev-fallback";
-        const urlSeed = new URL(request.url).pathname;
-        const etag = `W/"${urlSeed}:${rev}"`;
-        res.headers.set("ETag", etag);
-      }
+\ \ if\ \(pathname\.startsWith\("/posts/"\)\)\ \{
+\ \ \ \ //\ デバッグ印は常に（通過確認）
+\ \ \ \ const\ rev\ =\ res\.headers\.get\("X-Functions-Rev"\)\ \|\|\ "rev-fallback";
+\ \ \ \ const\ etagDbg\ =\ `W:"\$\{pathname}:\$\{rev}"`;
+\ \ \ \ res\.headers\.set\("X-ETag-Debug",\ etagDbg\);
+\ \ \ \ res\.headers\.set\("X-LM-Debug-Base",\ \(res\.headers\.get\("Last-Modified"\)\ \|\|\ res\.headers\.get\("Date"\)\ \|\|\ new\ Date\(\)\.toUTCString\(\)\)\);
 
-      // Last-Modified が無ければ Date or 現在時刻を採用
-      if (!hasLM) {
-        const dateHdr = res.headers.get("Date");
-        const when = dateHdr ? new Date(dateHdr) : new Date();
-        res.headers.set("Last-Modified", when.toUTCString());
-      }
+\ \ \ \ //\ 2xx\ のときだけ実際の\ ETag/Last-Modified\ を補完
+\ \ \ \ if\ \(res\.status\ >=\ 200\ &&\ res\.status\ <\ 300\)\ \{
+\ \ \ \ \ \ if\ \(!res\.headers\.get\("ETag"\)\)\ \{
+\ \ \ \ \ \ \ \ res\.headers\.set\("ETag",\ etagDbg\);
+\ \ \ \ \ \ }
+\ \ \ \ \ \ if\ \(!res\.headers\.get\("Last-Modified"\)\)\ \{
+\ \ \ \ \ \ \ \ const\ base\ =\ res\.headers\.get\("Date"\)\ \|\|\ new\ Date\(\)\.toUTCString\(\);
+\ \ \ \ \ \ \ \ res\.headers\.set\("Last-Modified",\ base\);
+\ \ \ \ \ \ }
+\ \ \ \ \ \ //\ 条件付きリクエスト評価
+\ \ \ \ \ \ const\ inm\ =\ request\.headers\.get\("If-None-Match"\);
+\ \ \ \ \ \ const\ ims\ =\ request\.headers\.get\("If-Modified-Since"\);
+\ \ \ \ \ \ const\ currentEtag\ =\ res\.headers\.get\("ETag"\);
+\ \ \ \ \ \ const\ lmHdr\ =\ res\.headers\.get\("Last-Modified"\);
 
-      // 条件付きリクエスト評価
-      const inm = request.headers.get("If-None-Match");
-      const ims = request.headers.get("If-Modified-Since");
-      const currentEtag = res.headers.get("ETag");
-      const lmHdr = res.headers.get("Last-Modified");
+\ \ \ \ \ \ //\ ETag:\ カンマ区切り対応
+\ \ \ \ \ \ const\ matchByEtag\ =\ !!\(inm\ &&\ currentEtag\ &&\ inm\.split\(","\)\.map\(s\ =>\ s\.trim\(\)\)\.includes\(currentEtag\)\);
+\ \ \ \ \ \ //\ If-Modified-Since:\ LM\ 以降なら\ 304
+\ \ \ \ \ \ const\ matchByTime\ =\ !!\(ims\ &&\ lmHdr\ &&\ Date\.parse\(ims\)\ >=\ Date\.parse\(lmHdr\)\);
 
-      // ETag はカンマ区切りに対応（弱い/強いは文字列一致でOK）
-      const matchByEtag = !!(inm && currentEtag && inm.split(",").map(s => s.trim()).includes(currentEtag));
-      const matchByTime = !!(ims && lmHdr && Date.parse(ims) >= Date.parse(lmHdr));
+\ \ \ \ \ \ //\ 条件付きを使うクライアント向けヒント
+\ \ \ \ \ \ res\.headers\.set\("Vary",\ \[res\.headers\.get\("Vary"\),\ "If-None-Match",\ "If-Modified-Since"]\.filter\(Boolean\)\.join\(",\ "\)\);
 
-      if (matchByEtag || matchByTime) {
-        // 304 はボディ無し・ヘッダ維持
-        return new Response(null, { status: 304, headers: res.headers });
-      }
-    }
-  } catch {
-    // 失敗しても配信は継続
-  }
-  // --- /ETag block ---
+\ \ \ \ \ \ if\ \(matchByEtag\ \|\|\ matchByTime\)\ \{
+\ \ \ \ \ \ \ \ return\ new\ Response\(null,\ \{\ status:\ 304,\ headers:\ res\.headers\ }\);
+\ \ \ \ \ \ }
+\ \ \ \ }
+\ \ }
+}\ catch\ \{
+\ \ //\ 失敗しても配信継続
+}
+//\ ---\ /ETag\ block\ ---
 
   // Common
   res.headers.set("X-From-Middleware", "yes");
@@ -65,5 +67,6 @@ export const onRequest: PagesFunction = async ({ request, next, env }) => {
   }
   return res;
 };
+
 
 
