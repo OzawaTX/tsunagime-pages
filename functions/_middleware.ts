@@ -1,4 +1,19 @@
 export const onRequest: PagesFunction = async ({ request, next }) => {
+  // --- MW short-circuit for /posts/__probe --- marker: posts/__probe@mw
+  {
+    const { pathname } = new URL(request.url);
+    if (pathname === "/posts/__probe" || pathname === "/posts/__probe/") {
+      return new Response("mw probe ok", {
+        status: 200,
+        headers: {
+          "X-From-Middleware": "yes, short",
+          "X-Test-Which": "mw/__probe",
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-store"
+        }
+      });
+    }
+  }
   const res = await next();
   // --- mw-probe ---
   res.headers.set("X-MW-Version", "mw-probe-20251013-2");
@@ -56,4 +71,5 @@ export const onRequest: PagesFunction = async ({ request, next }) => {
 
   return res;
 };
+
 
