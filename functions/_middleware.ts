@@ -50,7 +50,7 @@ export const onRequest: PagesFunction = async ({ request, next }) => {
 
         const inm = request.headers.get("If-None-Match");
         const ims = request.headers.get("If-Modified-Since");
-        const etag = res.headers.get("ETag");
+        const etag = `W/"${urlSeed}:${rev}"`;
         const lm   = res.headers.get("Last-Modified");
 
         const matchByEtag = !!(inm && etag && inm.split(",").map(s => s.trim()).includes(etag));
@@ -71,6 +71,7 @@ export const onRequest: PagesFunction = async ({ request, next }) => {
 
   return res;
 };
+
 
 
 
