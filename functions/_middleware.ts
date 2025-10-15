@@ -1,82 +1,80 @@
-// functions/_middleware.ts
 export const onRequest: PagesFunction = async ({ request, next }) => {
-  // /posts だけ対象
-  const { pathname } = new URL(request.url);
-  if (!pathname.startsWith("/posts")) {
-    return next();
-  }
+  const url = new URL(request.url);
 
-  // GET/HEAD 以外は素通し
-  if (request.method !== "GET" && request.method !== "HEAD") {
-    return next();
-  }
+  // ミドルウェア通過印（動作確認用）
+  const passThroughHeaders = { "X-From-Middleware": "yes" } as Record<string, string>;
 
-  // まずオリジンの応答を取得
-  const res = await next();
-
-  // 2xx 以外は何もしない
-  if (res.status < 200 || res.status >= 300) {
+  // /posts/ 以外は素通し
+  if (!url.pathname.startsWith("/posts/")) {
+    const r = await next();
+    const res = new Response(r.body, r);
+    Object.entries(passThroughHeaders).forEach(([k, v]) => res.headers.set(k, v));
     return res;
   }
 
-  // no-store は付与しない
-  const cc = res.headers.get("Cache-Control") || "";
-  if (/\bno-store\b/i.test(cc)) {
+  // /posts/** は検査
+  const originRes = await next();
+  const status = originRes.status;
+
+  // 2xx 以外はそのまま返す（404/5xx 等）
+  if (status < 200 || status >= 300) {
+    const res = new Response(originRes.body, originRes);
+    Object.entries(passThroughHeaders).forEach(([k, v]) => res.headers.set(k, v));
     return res;
   }
 
-  // 既にETagがあればそれを使う。なければ本文から計算して付与
-  let etag = res.headers.get("ETag");
-  if (!etag) {
-    try {
-      // 本文をコピーしてハッシュ化（HEADでも安全）
-      const clone = res.clone();
-      const buf = await clone.arrayBuffer();
-      const digest = await crypto.subtle.digest("SHA-256", buf);
-      // Base64url エンコード
-      const b = btoa(String.fromCharCode(...new Uint8Array(digest)))
-        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-      etag = `W/"sha256-${b}"`;
-      res.headers.set("ETag", etag);
-    } catch {
-      // ボディが無い/ストリーミング等はスキップ
-    }
+  // Body をテキスト化できるものだけ対象（text/ と application/json）
+  const ct = originRes.headers.get("Content-Type") || "";
+  const isTextLike = /\b(text\/|application\/json)/i.test(ct);
+  if (!isTextLike || originRes.body === null) {
+    const res = new Response(originRes.body, originRes);
+    Object.entries(passThroughHeaders).forEach(([k, v]) => res.headers.set(k, v));
+    return res;
   }
 
-  // Last-Modified がなければ Date か現在時刻から付与
-  if (!res.headers.get("Last-Modified")) {
-    const date = res.headers.get("Date") || new Date().toUTCString();
-    res.headers.set("Last-Modified", date);
+  // 既存 ETag/LM があれば尊重（そのまま 304 判定に使う）
+  let etag = originRes.headers.get("ETag");
+  let lastModified = originRes.headers.get("Last-Modified");
+
+  // なければ計算して付与（弱い ETag）
+  if (!etag || !lastModified) {
+    const text = await originRes.clone().text();
+    // SHA-256 -> 先頭 16 hex で弱い ETag を作る（十分安定・軽量）
+    const enc = new TextEncoder().encode(text);
+    const digest = await crypto.subtle.digest("SHA-256", enc);
+    const hashHex = [...new Uint8Array(digest)].slice(0, 8).map(b => b.toString(16).padStart(2, "0")).join("");
+    if (!etag) etag = `W/"${hashHex}"`;
+    if (!lastModified) lastModified = new Date().toUTCString();
   }
 
-  // 以降、条件付きリクエストに対して 304 を判定
+  // 条件付きリクエストの評価
   const inm = request.headers.get("If-None-Match");
   const ims = request.headers.get("If-Modified-Since");
+  const matchETag = inm && inm.split(",").map(s => s.trim()).includes(etag);
+  const notModifiedByTime = ims && new Date(ims).getTime() >= new Date(lastModified).getTime();
 
-  const weakMatch = (a: string, b: string) => {
-    // W/ 付きでも弱一致で比較
-    const strip = (s: string) => s.replace(/^W\//, "");
-    return strip(a) === strip(b);
-  };
-
-  const notModifiedByETag =
-    inm && etag && inm.split(",").map(s => s.trim()).some(tag => weakMatch(tag, etag!));
-
-  let notModifiedByLM = false;
-  if (!notModifiedByETag && ims) {
-    const since = Date.parse(ims);
-    const last = Date.parse(res.headers.get("Last-Modified") || "");
-    if (!isNaN(since) && !isNaN(last) && last <= since) {
-      notModifiedByLM = true;
-    }
+  // 304 を返す時はヘッダを必ず付け直す（Vary 等も整える）
+  if (matchETag || notModifiedByTime) {
+    const res304 = new Response(null, {
+      status: 304,
+      headers: {
+        "ETag": etag,
+        "Last-Modified": lastModified,
+        "Vary": "accept-encoding",
+      },
+    });
+    Object.entries(passThroughHeaders).forEach(([k, v]) => res304.headers.set(k, v));
+    // Cache-Control はオリジン設定を踏襲
+    const cc = originRes.headers.get("Cache-Control");
+    if (cc) res304.headers.set("Cache-Control", cc);
+    return res304;
   }
 
-  if (notModifiedByETag || notModifiedByLM) {
-    // 304 レスポンスを返す（キャッシュ系ヘッダは維持）
-    const h = new Headers(res.headers);
-    // ボディは無し
-    return new Response(null, { status: 304, headers: h });
-  }
-
-  return res;
+  // 200 系で返す場合も ETag/LM/Vary を付けて返却
+  const res200 = new Response(originRes.body, originRes);
+  res200.headers.set("ETag", etag);
+  res200.headers.set("Last-Modified", lastModified);
+  res200.headers.set("Vary", "accept-encoding");
+  Object.entries(passThroughHeaders).forEach(([k, v]) => res200.headers.set(k, v));
+  return res200;
 };
