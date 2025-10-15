@@ -38,7 +38,7 @@ export const onRequest: PagesFunction = async ({ request, next }) => {
 
       // 常にデバッグ用の ETag/LM 候補を打刻（ステータス不問で可視化）
       const rev = res.headers.get("X-Functions-Rev") || "rev-fallback";
-      const dbg = W/"\:\";
+      const dbg = "mw-probe";
       const base = (res.headers.get("Last-Modified") || res.headers.get("Date") || new Date().toUTCString());
       res.headers.set("X-ETag-Debug", dbg);
       res.headers.set("X-LM-Debug-Base", base);
@@ -71,5 +71,6 @@ export const onRequest: PagesFunction = async ({ request, next }) => {
 
   return res;
 };
+
 
 
