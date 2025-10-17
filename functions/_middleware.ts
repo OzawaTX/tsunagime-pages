@@ -1,4 +1,12 @@
 export const onRequest: PagesFunction = async ({ request, next }) => {
+// --- MW short-circuit for /posts/ (marker: posts/index@mw)
+{
+  const { pathname } = new URL(request.url);
+  // /posts と /posts/ はミドルウェアで処理せず Functions に委譲
+  if (pathname === "/posts" || pathname === "/posts/") {
+    return await next();
+  }
+}
 // --- Safe cache-control for /posts/ --- marker:safe-cache
 if (pathname.startsWith("/posts/")) {
   const res = await next();
@@ -88,4 +96,5 @@ if (pathname.startsWith("/posts/")) {
   Object.entries(passThroughHeaders).forEach(([k, v]) => res200.headers.set(k, v));
   return res200;
 };
+
 
