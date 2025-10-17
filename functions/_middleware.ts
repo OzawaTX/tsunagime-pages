@@ -1,4 +1,14 @@
 export const onRequest: PagesFunction = async ({ request, next }) => {
+// --- Safe cache-control for /posts/ --- marker:safe-cache
+if (pathname.startsWith("/posts/")) {
+  const res = await next();
+  if (res.status >= 200 && res.status < 300) {
+    const h = new Headers(res.headers);
+    h.set("Cache-Control", "public, no-cache, must-revalidate");
+    return new Response(res.body, { status: res.status, headers: h });
+  }
+  return res;
+}
   const url = new URL(request.url);
 
   // ミドルウェア通過印（動作確認用）
@@ -78,3 +88,4 @@ export const onRequest: PagesFunction = async ({ request, next }) => {
   Object.entries(passThroughHeaders).forEach(([k, v]) => res200.headers.set(k, v));
   return res200;
 };
+
